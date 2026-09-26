@@ -102,7 +102,7 @@ async function pushChanges(): Promise<void> {
   const entries = await db.outbox.toArray();
   if (entries.length === 0) return;
 
-  let failure: SyncError | null = null;
+  let failures: SyncError[] = [];
 
   for (const spec of specs) {
     const mine = entries.filter((e) => e.table === spec.remote);
@@ -113,14 +113,14 @@ async function pushChanges(): Promise<void> {
       const { error } = await supabase!.from(spec.remote).upsert(records.map((r) => spec.toRow(r)));
       if (error) {
         // Keep going: a later table can grant the access the failed one was missing.
-        failure ??= new SyncError(`skickar ${spec.remote}`, error);
+        failures.push(new SyncError(`skickar ${spec.remote}`, error));
         continue;
       }
     }
     await db.outbox.bulkDelete(mine.map((e) => e.key));
   }
 
-  if (failure) throw failure;
+  if (failures.length > 0) throw new Error(failures.map((f) => f.message).join(' | '));
 }
 
 /** Returns true when anything changed locally. */

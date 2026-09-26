@@ -85,25 +85,29 @@ alter table public.members enable row level security;
 alter table public.quick_titles enable row level security;
 alter table public.expenses enable row level security;
 
--- groups: readable and writable by its members; anyone signed in may create one.
+-- groups: readable and writable by its members. A group where nobody has claimed a seat is
+-- still being created, so its creator can finish writing it.
 drop policy if exists groups_select on public.groups;
-create policy groups_select on public.groups for select to authenticated using (is_group_member(id));
+create policy groups_select on public.groups for select to authenticated
+  using (is_group_member(id) or group_is_unclaimed(id));
 drop policy if exists groups_insert on public.groups;
 create policy groups_insert on public.groups for insert to authenticated with check (true);
 drop policy if exists groups_update on public.groups;
 create policy groups_update on public.groups for update to authenticated
-  using (is_group_member(id)) with check (is_group_member(id));
+  using (is_group_member(id) or group_is_unclaimed(id))
+  with check (is_group_member(id) or group_is_unclaimed(id));
 
--- members: members of the group may add and edit people. A group whose people are all
--- unclaimed is still being created, so its creator can insert the first batch.
+-- members: members of the group may add and edit people, and the creator may add the first batch.
 drop policy if exists members_select on public.members;
-create policy members_select on public.members for select to authenticated using (is_group_member(group_id));
+create policy members_select on public.members for select to authenticated
+  using (is_group_member(group_id) or group_is_unclaimed(group_id));
 drop policy if exists members_insert on public.members;
 create policy members_insert on public.members for insert to authenticated
   with check (is_group_member(group_id) or group_is_unclaimed(group_id));
 drop policy if exists members_update on public.members;
 create policy members_update on public.members for update to authenticated
-  using (is_group_member(group_id)) with check (is_group_member(group_id));
+  using (is_group_member(group_id) or group_is_unclaimed(group_id))
+  with check (is_group_member(group_id) or group_is_unclaimed(group_id));
 
 drop policy if exists quick_titles_all on public.quick_titles;
 create policy quick_titles_all on public.quick_titles for all to authenticated
