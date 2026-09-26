@@ -6,8 +6,9 @@ import { fileURLToPath } from 'node:url';
 
 const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'icons');
 
-const BG = [0x5e, 0x7f, 0x3e];
-const LEAF = [0xed, 0xf2, 0xe3];
+const BG = [0x4f, 0x6b, 0x33];
+const LEAF_LIGHT = [0xa6, 0xd1, 0x74];
+const LEAF_DARK = [0x84, 0xb8, 0x4f];
 const SS = 3; // supersampling factor
 
 const crcTable = Array.from({ length: 256 }, (_, n) => {
@@ -58,41 +59,56 @@ function segmentDistance(px, py, ax, ay, bx, by) {
   return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
 }
 
-/** true when the normalised point is inside the clover shape. */
-function inClover(x, y) {
-  const cx = 0.5;
-  const cy = 0.46;
-  const offset = 0.155;
-  const radius = 0.175;
-  for (const [ox, oy] of [
-    [-offset, -offset],
-    [offset, -offset],
-    [-offset, offset],
-    [offset, offset]
-  ]) {
-    if (Math.hypot(x - (cx + ox), y - (cy + oy)) <= radius) return true;
-  }
-  return segmentDistance(x, y, cx + 0.01, cy + 0.14, cx + 0.07, 0.88) <= 0.022;
+const CENTRE_X = 0.5;
+const CENTRE_Y = 0.45;
+const LEAF_SCALE = 0.15;
+
+// Four hearts with their points meeting in the middle, alternating shades.
+const LEAVES = [
+  { angle: -135, colour: LEAF_LIGHT },
+  { angle: -45, colour: LEAF_DARK },
+  { angle: 135, colour: LEAF_DARK },
+  { angle: 45, colour: LEAF_LIGHT }
+].map(({ angle, colour }) => {
+  const rad = (angle * Math.PI) / 180;
+  return { ox: Math.cos(rad), oy: Math.sin(rad), colour };
+});
+
+/** Classic heart curve, with its point at the local origin. */
+function inHeart(u, v) {
+  const r = u * u + v * v - 1;
+  return r * r * r - u * u * v * v * v <= 0;
 }
 
-function render(size, { transparentBackground = false } = {}) {
+function colourAt(x, y) {
+  const dx = x - CENTRE_X;
+  const dy = y - CENTRE_Y;
+
+  for (const leaf of LEAVES) {
+    const outward = dx * leaf.ox + dy * leaf.oy;
+    const across = dx * -leaf.oy + dy * leaf.ox;
+    // Slight overshoot past the centre, so the four points meet without a seam.
+    if (inHeart(across / LEAF_SCALE, outward / LEAF_SCALE - 0.9)) return leaf.colour;
+  }
+
+  if (segmentDistance(x, y, CENTRE_X, CENTRE_Y + 0.08, CENTRE_X, 0.9) <= 0.016) return LEAF_DARK;
+  return null;
+}
+
+function render(size) {
   const pixels = Buffer.alloc(size * size * 4);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      let hits = 0;
+      const sum = [0, 0, 0];
       for (let sy = 0; sy < SS; sy++) {
         for (let sx = 0; sx < SS; sx++) {
-          const nx = (x + (sx + 0.5) / SS) / size;
-          const ny = (y + (sy + 0.5) / SS) / size;
-          if (inClover(nx, ny)) hits++;
+          const colour = colourAt((x + (sx + 0.5) / SS) / size, (y + (sy + 0.5) / SS) / size) ?? BG;
+          for (let c = 0; c < 3; c++) sum[c] += colour[c];
         }
       }
-      const a = hits / (SS * SS);
       const i = (y * size + x) * 4;
-      for (let c = 0; c < 3; c++) {
-        pixels[i + c] = transparentBackground ? LEAF[c] : Math.round(BG[c] * (1 - a) + LEAF[c] * a);
-      }
-      pixels[i + 3] = transparentBackground ? Math.round(a * 255) : 255;
+      for (let c = 0; c < 3; c++) pixels[i + c] = Math.round(sum[c] / (SS * SS));
+      pixels[i + 3] = 255;
     }
   }
   return encodePng(size, pixels);
@@ -100,14 +116,14 @@ function render(size, { transparentBackground = false } = {}) {
 
 mkdirSync(OUT_DIR, { recursive: true });
 const files = [
-  ['favicon.png', 64, {}],
-  ['icon-192.png', 192, {}],
-  ['icon-512.png', 512, {}],
-  ['maskable-512.png', 512, {}],
-  ['apple-touch-icon.png', 180, {}]
+  ['favicon.png', 64],
+  ['icon-192.png', 192],
+  ['icon-512.png', 512],
+  ['maskable-512.png', 512],
+  ['apple-touch-icon.png', 180]
 ];
 
-for (const [name, size, options] of files) {
-  writeFileSync(join(OUT_DIR, name), render(size, options));
+for (const [name, size] of files) {
+  writeFileSync(join(OUT_DIR, name), render(size));
   console.log(`wrote icons/${name} (${size}px)`);
 }

@@ -4,7 +4,7 @@
   import { clipboardAmount, formatOre } from '../lib/money';
   import { evaluateToOre } from '../lib/calc';
   import { newId, nowIso, todayIso } from '../lib/id';
-  import { swishLink, swishNumber } from '../lib/swish';
+  import { swishLink } from '../lib/swish';
   import { app, memberName, saveExpense } from '../lib/state.svelte';
 
   let { onclose }: { onclose: () => void } = $props();
@@ -72,7 +72,6 @@
   {:else}
     <ul class="list">
       {#each myDebts as t (t.to)}
-        {@const phone = phoneFor(t.to)}
         {@const link = linkFor(t.to, t.amountOre)}
         <li>
           <p class="line">Betala <strong>{memberName(t.to)}</strong> <strong>{formatOre(t.amountOre)}</strong></p>
@@ -89,20 +88,14 @@
             {#if link}
               <a class="btn swish" href={link} rel="noopener">Öppna Swish</a>
             {/if}
-            <button class="btn btn-primary" onclick={() => markPaid(t.to, t.amountOre)}>Markera som betald</button>
-          </div>
-          <div class="swish-row">
             <button class="btn btn-outline" onclick={() => copyText(t.to, clipboardAmount(t.amountOre))}>
               {copied === t.to ? 'Kopierat' : 'Kopiera belopp'}
             </button>
-            {#if phone}
-              <button class="btn btn-outline" onclick={() => copyText(`nr-${t.to}`, swishNumber(phone))}>
-                {copied === `nr-${t.to}` ? 'Kopierat' : `Kopiera ${swishNumber(phone)}`}
-              </button>
-            {:else}
-              <p class="muted hint">{memberName(t.to)} har inte sparat något telefonnummer än.</p>
-            {/if}
+            <button class="btn btn-primary" onclick={() => markPaid(t.to, t.amountOre)}>Markera som betald</button>
           </div>
+          {#if !link}
+            <p class="muted hint">{memberName(t.to)} har inte sparat något telefonnummer än.</p>
+          {/if}
         </li>
       {/each}
     </ul>
@@ -156,14 +149,6 @@
     text-decoration: none;
     background: var(--matcha-500);
     color: #fff;
-  }
-
-  .swish-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8px;
   }
 
   .hint {

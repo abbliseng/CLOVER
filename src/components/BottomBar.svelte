@@ -31,7 +31,7 @@
         role="tab"
         aria-selected={app.tab === 'standings'}
         class:active={app.tab === 'standings'}
-        onclick={() => (app.tab = 'standings')}>Ställning</button
+        onclick={() => (app.tab = 'standings')}>Statistik</button
       >
     </div>
     <button class="fab" onclick={onadd} aria-label="Lägg till utgift">+</button>
