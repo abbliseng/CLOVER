@@ -15,7 +15,7 @@
       {formatSignedOre(myBalance)}
     </span>
     <span class="muted caption">
-      {myBalance > 0 ? 'du får tillbaka' : myBalance < 0 ? 'du är skyldig' : 'allt jämnt'}
+      {myBalance > 0 ? 'du får tillbaka' : myBalance < 0 ? 'du är skyldig' : ''}
     </span>
     {#if myBalance < 0}
       <button class="btn settle" onclick={onsettle}>Betala</button>

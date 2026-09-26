@@ -7,7 +7,7 @@ export function formatOre(ore: number, unit = true): string {
 }
 
 /** "+1 234,50 kr", "-1 234,50 kr" or "jämnt". */
-export function formatSignedOre(ore: number, evenLabel = 'jämnt'): string {
+export function formatSignedOre(ore: number, evenLabel = 'ca$h money gang sleyy'): string {
   if (ore === 0) return evenLabel;
   return `${ore > 0 ? '+' : '-'}${formatOre(ore)}`;
 }

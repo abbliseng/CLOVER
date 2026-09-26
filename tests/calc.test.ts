@@ -32,7 +32,7 @@ describe('evaluateToOre', () => {
 
 describe('money formatting', () => {
   it('shows even, plus and minus', () => {
-    expect(formatSignedOre(0)).toBe('jämnt');
+    expect(formatSignedOre(0)).toBe('ca$h money gang sleyy');
     expect(formatSignedOre(12345).startsWith('+')).toBe(true);
     expect(formatSignedOre(-12345).startsWith('-')).toBe(true);
   });
