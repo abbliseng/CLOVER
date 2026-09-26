@@ -4,6 +4,7 @@
   import { clipboardAmount, formatOre } from '../lib/money';
   import { evaluateToOre } from '../lib/calc';
   import { newId, nowIso, todayIso } from '../lib/id';
+  import { swishLink } from '../lib/swish';
   import { app, memberName, saveExpense } from '../lib/state.svelte';
 
   let { onclose }: { onclose: () => void } = $props();
@@ -17,6 +18,13 @@
 
   function amountFor(to: string, fullOre: number): string {
     return amounts[to] ?? (fullOre % 100 === 0 ? String(fullOre / 100) : (fullOre / 100).toFixed(2).replace('.', ','));
+  }
+
+  function swishFor(to: string, fullOre: number): string | null {
+    const phone = app.members.find((m) => m.id === to)?.phone;
+    const ore = evaluateToOre(amountFor(to, fullOre));
+    if (!phone || ore === null || ore <= 0) return null;
+    return swishLink(phone, ore, app.group?.name ?? 'Clover');
   }
 
   async function copy(to: string, ore: number) {
@@ -75,6 +83,9 @@
             <button class="btn btn-outline" onclick={() => copy(t.to, t.amountOre)}>
               {copied === t.to ? 'Kopierat' : 'Kopiera belopp'}
             </button>
+            {#if swishFor(t.to, t.amountOre)}
+              <a class="btn btn-outline swish" href={swishFor(t.to, t.amountOre)} rel="noopener">Öppna Swish</a>
+            {/if}
             <button class="btn btn-primary" onclick={() => markPaid(t.to, t.amountOre)}>Markera som betald</button>
           </div>
         </li>
@@ -126,9 +137,10 @@
     text-align: right;
   }
 
-  .note {
-    margin: 14px 0 0;
-    font-size: 0.85rem;
+  .swish {
+    text-decoration: none;
+    color: var(--matcha-700);
+    border-color: var(--matcha-300);
   }
 
   .error {
