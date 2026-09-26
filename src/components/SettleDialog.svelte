@@ -54,9 +54,9 @@
   }
 </script>
 
-<Modal title="Gör upp" {onclose}>
+<Modal title="Betala" {onclose}>
   {#if myDebts.length === 0}
-    <p class="muted">Inget att göra upp — du är jämn.</p>
+    <p class="muted">Inget att betala</p>
   {:else}
     <ul class="list">
       {#each myDebts as t (t.to)}
@@ -80,7 +80,6 @@
         </li>
       {/each}
     </ul>
-    <p class="muted note">Kopiera lägger bara siffran i urklipp, klar att klistra in i Swish.</p>
   {/if}
   {#if error}
     <p class="error">{error}</p>
