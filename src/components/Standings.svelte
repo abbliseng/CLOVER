@@ -8,9 +8,9 @@
 
   const memberIds = $derived(app.members.map((m) => m.id));
   const shown = $derived(app.expenses.filter((e) => withinPeriod(e.date, app.period)));
-  const filtered = $derived(app.period.preset !== 'all');
 
-  const balances = $derived(computeBalances(memberIds, shown));
+  // Balances always cover everything; only the statistics follow the period.
+  const balances = $derived(computeBalances(memberIds, app.expenses));
   const rows = $derived(
     app.members
       .map((m) => ({ id: m.id, name: m.name, ore: balances.get(m.id) ?? 0 }))
@@ -24,9 +24,7 @@
 </script>
 
 <section>
-  <PeriodFilter />
-
-  <h2 class="month">SALDON{filtered ? ' (VALD PERIOD)' : ''}</h2>
+  <h2 class="month">SALDON</h2>
   <ul class="list card">
     {#each rows as r (r.id)}
       <li>
@@ -48,9 +46,6 @@
       </li>
     {/each}
   </ul>
-  {#if filtered}
-    <p class="hint muted">Saldon räknas bara på perioden ovan. Välj Allt för de riktiga skulderna.</p>
-  {/if}
 
   <h2 class="month">FÖRESLAGNA BETALNINGAR</h2>
   <ul class="list card">
@@ -68,7 +63,8 @@
   </ul>
 
   <h2 class="month">ÖVERSIKT</h2>
-  <ul class="list card">
+  <PeriodFilter />
+  <ul class="list card stats">
     {#if stats.count === 0}
       <li class="settled muted">Inga utgifter i perioden.</li>
     {:else}
@@ -226,8 +222,7 @@
     text-align: center;
   }
 
-  .hint {
-    margin: 8px 4px 0;
-    font-size: 0.82rem;
+  .stats {
+    margin-top: 10px;
   }
 </style>

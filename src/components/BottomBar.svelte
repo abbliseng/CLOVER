@@ -18,7 +18,7 @@
       {myBalance > 0 ? 'du får tillbaka' : myBalance < 0 ? 'du är skyldig' : 'allt jämnt'}
     </span>
     {#if myBalance < 0}
-      <button class="btn settle" onclick={onsettle}>Gör upp</button>
+      <button class="btn settle" onclick={onsettle}>Betala</button>
     {/if}
   </div>
 
@@ -80,11 +80,12 @@
   .settle {
     align-self: center;
     min-height: 34px;
-    padding: 6px 14px;
-    background: var(--matcha-100);
-    color: var(--matcha-700);
+    padding: 6px 16px;
+    background: var(--matcha-500);
+    color: #fff;
     border-radius: 999px;
     font-size: 0.9rem;
+    box-shadow: 0 2px 8px rgba(94, 127, 62, 0.3);
   }
 
   .controls {
@@ -123,13 +124,17 @@
 
   .fab {
     flex: none;
+    display: grid;
+    place-items: center;
     width: 52px;
     height: 52px;
+    padding: 0;
     border: 0;
     border-radius: 50%;
     background: var(--matcha-500);
     color: #fff;
-    font-size: 1.7rem;
+    font-size: 1.9rem;
+    font-weight: 400;
     line-height: 1;
     box-shadow: 0 4px 14px rgba(94, 127, 62, 0.35);
   }

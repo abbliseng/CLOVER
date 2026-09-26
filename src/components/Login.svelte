@@ -47,7 +47,6 @@
   <div class="hero">
     <span class="logo" aria-hidden="true">🍀</span>
     <h1>Clover</h1>
-    <p class="muted">Delade utgifter, alltid jämnt.</p>
   </div>
 
   <form class="card panel" onsubmit={submit}>
@@ -97,10 +96,6 @@
   h1 {
     font-size: 2rem;
     margin-top: 6px;
-  }
-
-  .hero p {
-    margin: 4px 0 0;
   }
 
   .panel {

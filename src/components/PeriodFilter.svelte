@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { periodLabel, type PeriodPreset } from '../lib/period';
+  import type { PeriodPreset } from '../lib/period';
   import { app } from '../lib/state.svelte';
 
   const presets: { key: PeriodPreset; label: string }[] = [
@@ -31,8 +31,6 @@
         <input type="date" bind:value={app.period.to} />
       </label>
     </div>
-  {:else if app.period.preset !== 'all'}
-    <p class="muted note">{periodLabel(app.period)}</p>
   {/if}
 </div>
 
@@ -84,10 +82,5 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-  }
-
-  .note {
-    margin: 0 4px;
-    font-size: 0.82rem;
   }
 </style>

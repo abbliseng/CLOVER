@@ -61,7 +61,6 @@
   <div class="hero">
     <span class="logo" aria-hidden="true">🍀</span>
     <h1>Clover</h1>
-    <p class="muted">Delade utgifter, alltid jämnt.</p>
   </div>
 
   {#if !app.group}
@@ -167,10 +166,6 @@
   h1 {
     font-size: 2rem;
     margin-top: 6px;
-  }
-
-  .hero p {
-    margin: 4px 0 0;
   }
 
   .tabs {
