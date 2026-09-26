@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { signIn, signUp } from '../lib/state.svelte';
+  import { sendPasswordReset, signIn, signUp } from '../lib/state.svelte';
 
   let email = $state('');
   let password = $state('');
@@ -29,6 +29,17 @@
       message = 'Konto skapat. Bekräfta e-postadressen om du får ett mejl, logga sedan in.';
       mode = 'in';
     }
+  }
+
+  async function forgot() {
+    if (!email.trim()) {
+      message = 'Fyll i din e-post först.';
+      return;
+    }
+    busy = true;
+    const error = await sendPasswordReset(email.trim());
+    busy = false;
+    message = error ?? 'Ett återställningsmejl är på väg. Öppna länken på den här enheten.';
   }
 </script>
 
@@ -61,6 +72,9 @@
     <button type="button" class="btn btn-quiet" onclick={() => (mode = mode === 'in' ? 'up' : 'in')}>
       {mode === 'in' ? 'Har du inget konto? Skapa ett' : 'Har du redan ett konto? Logga in'}
     </button>
+    {#if mode === 'in'}
+      <button type="button" class="btn btn-quiet" onclick={forgot} disabled={busy}>Glömt lösenordet?</button>
+    {/if}
   </form>
 </main>
 

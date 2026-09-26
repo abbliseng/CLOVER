@@ -12,6 +12,7 @@ export const app = $state({
   ready: false,
   authReady: !syncConfigured,
   user: null as { id: string; email: string } | null,
+  recovery: false,
   group: null as Group | null,
   members: [] as Member[],
   quickTitles: [] as QuickTitle[],
@@ -57,11 +58,16 @@ export async function loadAll(): Promise<void> {
 
 export function initAuth(): void {
   if (!supabase) return;
+  // The recovery link lands with #type=recovery; the event fires while that is being consumed.
+  if (location.hash.includes('type=recovery')) app.recovery = true;
   supabase.auth.getSession().then(({ data }) => {
     applySession(data.session?.user ?? null);
     app.authReady = true;
   });
-  supabase.auth.onAuthStateChange((_event, session) => applySession(session?.user ?? null));
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') app.recovery = true;
+    applySession(session?.user ?? null);
+  });
 }
 
 function applySession(user: { id: string; email?: string } | null): void {
@@ -83,6 +89,20 @@ export async function signUp(email: string, password: string): Promise<string | 
 export async function signOut(): Promise<void> {
   await supabase!.auth.signOut();
   app.user = null;
+}
+
+export async function sendPasswordReset(email: string): Promise<string | null> {
+  const redirectTo = `${location.origin}${import.meta.env.BASE_URL}`;
+  const { error } = await supabase!.auth.resetPasswordForEmail(email, { redirectTo });
+  return error ? error.message : null;
+}
+
+export async function updatePassword(password: string): Promise<string | null> {
+  const { error } = await supabase!.auth.updateUser({ password });
+  if (error) return error.message;
+  app.recovery = false;
+  history.replaceState(null, '', location.pathname + location.search);
+  return null;
 }
 
 export interface GroupPreview {

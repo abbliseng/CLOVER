@@ -3,6 +3,7 @@
   import ExpenseForm from './components/ExpenseForm.svelte';
   import Expenses from './components/Expenses.svelte';
   import Login from './components/Login.svelte';
+  import NewPassword from './components/NewPassword.svelte';
   import SettleDialog from './components/SettleDialog.svelte';
   import Settings from './components/Settings.svelte';
   import Setup from './components/Setup.svelte';
@@ -39,6 +40,8 @@
 
 {#if !app.ready || !app.authReady}
   <div class="splash"><span aria-hidden="true">🍀</span></div>
+{:else if app.recovery}
+  <NewPassword />
 {:else if syncConfigured && !app.user}
   <Login />
 {:else if !app.group || !app.meId}
