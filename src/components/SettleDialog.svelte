@@ -4,7 +4,7 @@
   import { clipboardAmount, formatOre } from '../lib/money';
   import { evaluateToOre } from '../lib/calc';
   import { newId, nowIso, todayIso } from '../lib/id';
-  import { SWISH_APP_URL, swishNumber } from '../lib/swish';
+  import { swishLink, swishNumber } from '../lib/swish';
   import { app, memberName, saveExpense } from '../lib/state.svelte';
 
   let { onclose }: { onclose: () => void } = $props();
@@ -22,6 +22,14 @@
 
   function phoneFor(to: string): string | null {
     return app.members.find((m) => m.id === to)?.phone ?? null;
+  }
+
+  /** Pre-filled Swish link for whatever amount is in the field right now. */
+  function linkFor(to: string, fullOre: number): string | null {
+    const phone = phoneFor(to);
+    const ore = evaluateToOre(amountFor(to, fullOre));
+    if (!phone || ore === null) return null;
+    return swishLink(phone, ore, app.group?.name ?? '');
   }
 
   async function copyText(key: string, text: string) {
@@ -65,6 +73,7 @@
     <ul class="list">
       {#each myDebts as t (t.to)}
         {@const phone = phoneFor(t.to)}
+        {@const link = linkFor(t.to, t.amountOre)}
         <li>
           <p class="line">Betala <strong>{memberName(t.to)}</strong> <strong>{formatOre(t.amountOre)}</strong></p>
           <div class="controls">
@@ -77,21 +86,23 @@
                 aria-label={`Belopp att betala till ${memberName(t.to)}`}
               />
             </label>
+            {#if link}
+              <a class="btn swish" href={link} rel="noopener">Öppna Swish</a>
+            {/if}
+            <button class="btn btn-primary" onclick={() => markPaid(t.to, t.amountOre)}>Markera som betald</button>
+          </div>
+          <div class="swish-row">
             <button class="btn btn-outline" onclick={() => copyText(t.to, clipboardAmount(t.amountOre))}>
               {copied === t.to ? 'Kopierat' : 'Kopiera belopp'}
             </button>
-            <button class="btn btn-primary" onclick={() => markPaid(t.to, t.amountOre)}>Markera som betald</button>
-          </div>
-          {#if phone}
-            <div class="swish-row">
+            {#if phone}
               <button class="btn btn-outline" onclick={() => copyText(`nr-${t.to}`, swishNumber(phone))}>
                 {copied === `nr-${t.to}` ? 'Kopierat' : `Kopiera ${swishNumber(phone)}`}
               </button>
-              <a class="btn btn-outline swish" href={SWISH_APP_URL} rel="noopener">Öppna Swish</a>
-            </div>
-          {:else}
-            <p class="muted hint">{memberName(t.to)} har inte sparat något telefonnummer än.</p>
-          {/if}
+            {:else}
+              <p class="muted hint">{memberName(t.to)} har inte sparat något telefonnummer än.</p>
+            {/if}
+          </div>
         </li>
       {/each}
     </ul>
@@ -143,13 +154,14 @@
 
   .swish {
     text-decoration: none;
-    color: var(--matcha-700);
-    border-color: var(--matcha-300);
+    background: var(--matcha-500);
+    color: #fff;
   }
 
   .swish-row {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 8px;
     margin-top: 8px;
   }
