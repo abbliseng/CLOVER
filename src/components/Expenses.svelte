@@ -59,9 +59,9 @@
   {#if months.length === 0}
     <div class="empty card">
       <h2>Inga utgifter {app.period.preset === 'all' ? 'än' : 'i perioden'}</h2>
-      <p class="muted">
-        {app.period.preset === 'all' ? 'Tryck på + för att lägga till den första.' : 'Prova en annan period.'}
-      </p>
+      {#if app.period.preset === 'all'} 
+        <p class="muted">Tryck på + för att lägga till den första.</p>
+      {/if}
     </div>
   {:else}
     <p class="summary muted">{shown.length} utlägg · {formatOre(totalOre)} i utgifter</p>
