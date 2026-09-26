@@ -64,7 +64,7 @@
       </p>
     </div>
   {:else}
-    <p class="summary muted">{shown.length} poster · {formatOre(totalOre)} i utgifter</p>
+    <p class="summary muted">{shown.length} utlägg · {formatOre(totalOre)} i utgifter</p>
   {/if}
 
   {#each months as group (group.key)}

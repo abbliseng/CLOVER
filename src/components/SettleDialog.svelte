@@ -4,7 +4,7 @@
   import { clipboardAmount, formatOre } from '../lib/money';
   import { evaluateToOre } from '../lib/calc';
   import { newId, nowIso, todayIso } from '../lib/id';
-  import { swishLink } from '../lib/swish';
+  import { SWISH_APP_URL, swishNumber } from '../lib/swish';
   import { app, memberName, saveExpense } from '../lib/state.svelte';
 
   let { onclose }: { onclose: () => void } = $props();
@@ -20,21 +20,17 @@
     return amounts[to] ?? (fullOre % 100 === 0 ? String(fullOre / 100) : (fullOre / 100).toFixed(2).replace('.', ','));
   }
 
-  function swishFor(to: string, fullOre: number): string | null {
-    const phone = app.members.find((m) => m.id === to)?.phone;
-    const ore = evaluateToOre(amountFor(to, fullOre));
-    if (!phone || ore === null || ore <= 0) return null;
-    return swishLink(phone, ore, app.group?.name ?? 'Clover');
+  function phoneFor(to: string): string | null {
+    return app.members.find((m) => m.id === to)?.phone ?? null;
   }
 
-  async function copy(to: string, ore: number) {
-    const text = clipboardAmount(ore);
+  async function copyText(key: string, text: string) {
     try {
       await navigator.clipboard.writeText(text);
-      copied = to;
+      copied = key;
       setTimeout(() => (copied = null), 1600);
     } catch {
-      error = `Kunde inte kopiera. Beloppet är ${text}.`;
+      error = `Kunde inte kopiera. Värdet är ${text}.`;
     }
   }
 
@@ -68,6 +64,7 @@
   {:else}
     <ul class="list">
       {#each myDebts as t (t.to)}
+        {@const phone = phoneFor(t.to)}
         <li>
           <p class="line">Betala <strong>{memberName(t.to)}</strong> <strong>{formatOre(t.amountOre)}</strong></p>
           <div class="controls">
@@ -80,14 +77,21 @@
                 aria-label={`Belopp att betala till ${memberName(t.to)}`}
               />
             </label>
-            <button class="btn btn-outline" onclick={() => copy(t.to, t.amountOre)}>
+            <button class="btn btn-outline" onclick={() => copyText(t.to, clipboardAmount(t.amountOre))}>
               {copied === t.to ? 'Kopierat' : 'Kopiera belopp'}
             </button>
-            {#if swishFor(t.to, t.amountOre)}
-              <a class="btn btn-outline swish" href={swishFor(t.to, t.amountOre)} rel="noopener">Öppna Swish</a>
-            {/if}
             <button class="btn btn-primary" onclick={() => markPaid(t.to, t.amountOre)}>Markera som betald</button>
           </div>
+          {#if phone}
+            <div class="swish-row">
+              <button class="btn btn-outline" onclick={() => copyText(`nr-${t.to}`, swishNumber(phone))}>
+                {copied === `nr-${t.to}` ? 'Kopierat' : `Kopiera ${swishNumber(phone)}`}
+              </button>
+              <a class="btn btn-outline swish" href={SWISH_APP_URL} rel="noopener">Öppna Swish</a>
+            </div>
+          {:else}
+            <p class="muted hint">{memberName(t.to)} har inte sparat något telefonnummer än.</p>
+          {/if}
         </li>
       {/each}
     </ul>
@@ -141,6 +145,18 @@
     text-decoration: none;
     color: var(--matcha-700);
     border-color: var(--matcha-300);
+  }
+
+  .swish-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .hint {
+    margin: 8px 0 0;
+    font-size: 0.85rem;
   }
 
   .error {

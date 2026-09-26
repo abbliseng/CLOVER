@@ -14,9 +14,6 @@
     <span class="balance" class:amount-pos={myBalance > 0} class:amount-neg={myBalance < 0}>
       {formatSignedOre(myBalance)}
     </span>
-    <span class="muted caption">
-      {myBalance > 0 ? 'du får tillbaka' : myBalance < 0 ? 'du är skyldig' : ''}
-    </span>
     {#if myBalance < 0}
       <button class="btn settle" onclick={onsettle}>Betala</button>
     {/if}
