@@ -81,6 +81,15 @@ const specs = [groupSpec, memberSpec, quickTitleSpec, expenseSpec] as Spec<any>[
 const EPOCH = '1970-01-01T00:00:00.000Z';
 const sinceKey = (remote: RemoteTable) => `clover.sync.since.${remote}`;
 
+/** Supabase errors are plain objects, so keep the readable parts and say which step failed. */
+class SyncError extends Error {
+  constructor(step: string, cause: { message: string; code?: string; details?: string; hint?: string }) {
+    const parts = [cause.message, cause.details, cause.hint].filter(Boolean);
+    super(`${step} (${cause.code ?? 'okänd kod'}): ${parts.join(' — ')}`);
+    console.error('[clover sync]', step, cause);
+  }
+}
+
 export function resetSyncCursor(): void {
   for (const spec of specs) localStorage.removeItem(sinceKey(spec.remote));
 }
@@ -100,7 +109,7 @@ async function pushChanges(): Promise<void> {
     const records = (await spec.table.bulkGet(mine.map((e) => e.id))).filter(Boolean);
     if (records.length > 0) {
       const { error } = await supabase!.from(spec.remote).upsert(records.map((r) => spec.toRow(r)));
-      if (error) throw error;
+      if (error) throw new SyncError(`skickar ${spec.remote}`, error);
     }
     await db.outbox.bulkDelete(mine.map((e) => e.key));
   }
@@ -118,7 +127,7 @@ async function pullChanges(): Promise<boolean> {
       .gt('updated_at', since)
       .order('updated_at', { ascending: true })
       .limit(1000);
-    if (error) throw error;
+    if (error) throw new SyncError(`hämtar ${spec.remote}`, error);
     if (!data || data.length === 0) continue;
 
     let newest = since;

@@ -66,6 +66,20 @@ as $$
   );
 $$;
 
+-- Must be security definer as well: a policy on members may not query members directly.
+create or replace function public.group_is_unclaimed(p_group uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select not exists (
+    select 1 from public.members m
+    where m.group_id = p_group and m.auth_user_id is not null
+  );
+$$;
+
 alter table public.groups enable row level security;
 alter table public.members enable row level security;
 alter table public.quick_titles enable row level security;
@@ -86,13 +100,7 @@ drop policy if exists members_select on public.members;
 create policy members_select on public.members for select to authenticated using (is_group_member(group_id));
 drop policy if exists members_insert on public.members;
 create policy members_insert on public.members for insert to authenticated
-  with check (
-    is_group_member(group_id)
-    or not exists (
-      select 1 from public.members m
-      where m.group_id = members.group_id and m.auth_user_id is not null
-    )
-  );
+  with check (is_group_member(group_id) or group_is_unclaimed(group_id));
 drop policy if exists members_update on public.members;
 create policy members_update on public.members for update to authenticated
   using (is_group_member(group_id)) with check (is_group_member(group_id));
