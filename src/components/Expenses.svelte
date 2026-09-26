@@ -1,7 +1,9 @@
 <script lang="ts">
+  import PeriodFilter from './PeriodFilter.svelte';
   import type { Expense } from '../lib/db';
   import { splitOre } from '../lib/balances';
   import { formatOre } from '../lib/money';
+  import { withinPeriod } from '../lib/period';
   import { app, memberName } from '../lib/state.svelte';
 
   let { onedit }: { onedit: (expense: Expense) => void } = $props();
@@ -46,15 +48,23 @@
     return splitOre(e.amountOre, e.shares).get(app.meId) ?? 0;
   }
 
-  const months = $derived(byMonth(app.expenses));
+  const shown = $derived(app.expenses.filter((e) => withinPeriod(e.date, app.period)));
+  const months = $derived(byMonth(shown));
+  const totalOre = $derived(shown.filter((e) => !e.isSettlement).reduce((sum, e) => sum + e.amountOre, 0));
 </script>
 
 <section>
+  <PeriodFilter />
+
   {#if months.length === 0}
     <div class="empty card">
-      <h2>Inga utgifter än</h2>
-      <p class="muted">Tryck på + för att lägga till den första.</p>
+      <h2>Inga utgifter {app.period.preset === 'all' ? 'än' : 'i perioden'}</h2>
+      <p class="muted">
+        {app.period.preset === 'all' ? 'Tryck på + för att lägga till den första.' : 'Prova en annan period.'}
+      </p>
     </div>
+  {:else}
+    <p class="summary muted">{shown.length} poster · {formatOre(totalOre)} i utgifter</p>
   {/if}
 
   {#each months as group (group.key)}
@@ -97,6 +107,11 @@
     font-size: 0.78rem;
     letter-spacing: 0.12em;
     color: var(--muted);
+  }
+
+  .summary {
+    margin: 12px 4px 0;
+    font-size: 0.85rem;
   }
 
   .list {

@@ -148,34 +148,6 @@
 <Modal title={expense ? 'Redigera utgift' : 'Ny utgift'} {onclose}>
   <div class="form">
     <div class="field">
-      <span class="label">Kostnad (SEK)</span>
-      <input
-        class="amount"
-        inputmode="text"
-        placeholder="0"
-        autocomplete="off"
-        bind:value={amountText}
-        aria-label="Kostnad i kronor"
-      />
-      <div class="keypad">
-        {#each ['7', '8', '9', '÷', '4', '5', '6', '×', '1', '2', '3', '-', ',', '0', '<', '+'] as k (k)}
-          <button type="button" class="key" class:op={'÷×-+'.includes(k)} onclick={() => key(k)}>
-            {k === '<' ? '⌫' : k}
-          </button>
-        {/each}
-        <button type="button" class="key wide" onclick={() => key('C')}>C</button>
-        <button type="button" class="key equals" onclick={() => key('=')}>=</button>
-      </div>
-      <p class="hint">
-        {#if amountOre !== null}
-          = {formatOre(amountOre)}
-        {:else}
-          Skriv ett belopp eller en uträkning, t.ex. 120+65÷2.
-        {/if}
-      </p>
-    </div>
-
-    <div class="field">
       <span class="label">Titel</span>
       <input bind:value={title} placeholder="Vad gällde det?" autocomplete="off" />
       <div class="chips">
@@ -206,6 +178,34 @@
     <div class="field">
       <span class="label">Datum</span>
       <input type="date" bind:value={date} />
+    </div>
+
+    <div class="field">
+      <span class="label">Kostnad (SEK)</span>
+      <input
+        class="amount"
+        inputmode="text"
+        placeholder="0"
+        autocomplete="off"
+        bind:value={amountText}
+        aria-label="Kostnad i kronor"
+      />
+      <div class="keypad">
+        {#each ['7', '8', '9', '÷', '4', '5', '6', '×', '1', '2', '3', '-', ',', '0', '<', '+'] as k (k)}
+          <button type="button" class="key" class:op={'÷×-+'.includes(k)} onclick={() => key(k)}>
+            {k === '<' ? '⌫' : k}
+          </button>
+        {/each}
+        <button type="button" class="key wide" onclick={() => key('C')}>C</button>
+        <button type="button" class="key equals" onclick={() => key('=')}>=</button>
+      </div>
+      <p class="hint">
+        {#if amountOre !== null}
+          = {formatOre(amountOre)}
+        {:else}
+          Skriv ett belopp eller en uträkning, t.ex. 120+65÷2.
+        {/if}
+      </p>
     </div>
 
     <div class="field">

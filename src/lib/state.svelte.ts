@@ -1,5 +1,6 @@
 import { db, DEFAULT_QUICK_TITLES, type Expense, type Group, type Member, type QuickTitle } from './db';
 import { newId, nowIso } from './id';
+import type { Period } from './period';
 import { supabase, syncConfigured } from './supabase';
 import { queueChange, resetSyncCursor, startSync, stopSync, syncNow } from './sync.svelte';
 
@@ -18,7 +19,8 @@ export const app = $state({
   quickTitles: [] as QuickTitle[],
   expenses: [] as Expense[],
   meId: null as string | null,
-  tab: 'expenses' as Tab
+  tab: 'expenses' as Tab,
+  period: { preset: 'all', from: '', to: '' } as Period
 });
 
 export function memberName(id: string | null | undefined): string {
@@ -178,7 +180,8 @@ async function put<T extends { id: string }>(
   store: { put(record: T): unknown },
   record: T
 ): Promise<void> {
-  await store.put(record);
+  // IndexedDB cannot clone Svelte's state proxies, so store a plain copy.
+  await store.put($state.snapshot(record) as T);
   await queueChange(table, record.id);
   await loadAll();
   void syncNow();
