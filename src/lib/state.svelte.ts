@@ -149,6 +149,7 @@ export async function createGroup(name: string, memberNames: string[], meIndex: 
     groupId,
     name: n,
     authUserId: i === meIndex ? (app.user?.id ?? null) : null,
+    phone: null,
     updatedAt,
     deleted: false
   }));
@@ -199,6 +200,7 @@ export async function addMember(name: string): Promise<void> {
     groupId: app.group.id,
     name,
     authUserId: null,
+    phone: null,
     updatedAt: nowIso(),
     deleted: false
   });
@@ -208,6 +210,14 @@ export async function renameMember(id: string, name: string): Promise<void> {
   const member = app.members.find((m) => m.id === id);
   if (!member) return;
   await put('members', db.members, { ...member, name, updatedAt: nowIso() });
+}
+
+export async function setPhone(id: string, phone: string): Promise<void> {
+  const member = app.members.find((m) => m.id === id);
+  if (!member) return;
+  const trimmed = phone.trim();
+  if ((member.phone ?? '') === trimmed) return;
+  await put('members', db.members, { ...member, phone: trimmed || null, updatedAt: nowIso() });
 }
 
 export function setMe(id: string): void {

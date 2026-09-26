@@ -14,6 +14,7 @@ export interface Member {
   groupId: string;
   name: string;
   authUserId: string | null;
+  phone: string | null;
   updatedAt: string;
   deleted: boolean;
 }

@@ -26,6 +26,7 @@ const memberSpec: Spec<Member> = {
     group_id: m.groupId,
     name: m.name,
     auth_user_id: m.authUserId,
+    phone: m.phone,
     updated_at: m.updatedAt,
     deleted: m.deleted
   }),
@@ -34,6 +35,7 @@ const memberSpec: Spec<Member> = {
     groupId: r.group_id,
     name: r.name,
     authUserId: r.auth_user_id ?? null,
+    phone: r.phone ?? null,
     updatedAt: iso(r.updated_at),
     deleted: r.deleted
   })

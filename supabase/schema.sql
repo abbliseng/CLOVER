@@ -16,9 +16,12 @@ create table if not exists public.members (
   group_id uuid not null references public.groups (id) on delete cascade,
   name text not null,
   auth_user_id uuid references auth.users (id),
+  phone text,
   updated_at timestamptz not null default now(),
   deleted boolean not null default false
 );
+
+alter table public.members add column if not exists phone text;
 
 create table if not exists public.quick_titles (
   id uuid primary key,

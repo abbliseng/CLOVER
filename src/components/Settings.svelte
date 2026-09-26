@@ -7,6 +7,7 @@
     renameGroup,
     renameMember,
     setMe,
+    setPhone,
     signOut
   } from '../lib/state.svelte';
   import { syncConfigured } from '../lib/supabase';
@@ -18,6 +19,8 @@
   let newMember = $state('');
   let error = $state('');
   let copied = $state(false);
+
+  const me = $derived(app.members.find((m) => m.id === app.meId) ?? null);
 
   const statusText = $derived(
     {
@@ -104,13 +107,11 @@
           </span>
         {/each}
       </div>
-      <p class="muted small">Nya snabbtitlar lägger du till i utgiftsformuläret.</p>
     </div>
 
     {#if syncConfigured}
       <div class="field">
-        <span class="label">Bjud in en telefon</span>
-        <p class="muted small">Den andra personen väljer ”Gå med i grupp” och klistrar in koden.</p>
+        <span class="label">Bjud in</span>
         <code class="code">{app.group?.id}</code>
         <div class="person">
           <button class="btn btn-outline" onclick={copyInvite}>{copied ? 'Kopierat' : 'Kopiera kod'}</button>
@@ -120,6 +121,17 @@
       <div class="field">
         <span class="label">Konto</span>
         <p class="muted small">{app.user?.email} · synk: {statusText}</p>
+        <label class="phone">
+          <span class="muted small">Ditt telefonnummer</span>
+          <input
+            type="tel"
+            inputmode="tel"
+            autocomplete="tel"
+            placeholder="07…"
+            value={me?.phone ?? ''}
+            onblur={(e) => me && setPhone(me.id, e.currentTarget.value)}
+          />
+        </label>
         <div class="person">
           <button class="btn btn-outline" onclick={syncNow}>Synka nu</button>
           <button class="btn btn-quiet" onclick={signOut}>Logga ut</button>
@@ -150,6 +162,12 @@
   .person {
     display: flex;
     gap: 8px;
+  }
+
+  .phone {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
   }
 
   .chips {
