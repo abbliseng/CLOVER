@@ -9,7 +9,7 @@
   import Setup from './components/Setup.svelte';
   import Standings from './components/Standings.svelte';
   import type { Expense } from './lib/db';
-  import { app, initAuth, loadAll } from './lib/state.svelte';
+  import { app, initAuth, loadAll, start } from './lib/state.svelte';
   import { syncConfigured } from './lib/supabase';
   import { onSyncChanged } from './lib/sync.svelte';
 
@@ -20,7 +20,7 @@
 
   onSyncChanged(loadAll);
   initAuth();
-  loadAll();
+  start();
 
   function openNew() {
     editing = null;

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { swishLink, swishMessage, swishNumber } from '../src/lib/swish';
+import { newId, UUID_PATTERN } from '../src/lib/id';
+
+describe('newId', () => {
+  it('always produces a UUID, which is what the server column expects', () => {
+    for (let i = 0; i < 50; i++) expect(newId()).toMatch(UUID_PATTERN);
+  });
+});
 
 describe('swishNumber', () => {
   it('keeps digits only', () => {

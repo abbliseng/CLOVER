@@ -1,5 +1,14 @@
-import { db, DEFAULT_QUICK_TITLES, type Expense, type Group, type Member, type QuickTitle } from './db';
-import { newId, nowIso } from './id';
+import type { Table } from 'dexie';
+import {
+  db,
+  DEFAULT_QUICK_TITLES,
+  type Expense,
+  type Group,
+  type Member,
+  type QuickTitle,
+  type RemoteTable
+} from './db';
+import { newId, nowIso, UUID_PATTERN } from './id';
 import type { Period } from './period';
 import { supabase, syncConfigured } from './supabase';
 import { queueChange, resetSyncCursor, startSync, stopSync, syncNow } from './sync.svelte';
@@ -25,6 +34,30 @@ export const app = $state({
 
 export function memberName(id: string | null | undefined): string {
   return app.members.find((m) => m.id === id)?.name ?? 'Okänd';
+}
+
+/**
+ * Older builds could create ids that are not UUIDs, which the server rejects outright.
+ * Give those records a fresh id so the queued changes can finally be sent.
+ */
+async function rekey<T extends { id: string; updatedAt: string }>(
+  name: RemoteTable,
+  store: Table<T, string>
+): Promise<void> {
+  const broken = (await store.toArray()).filter((record) => !UUID_PATTERN.test(record.id));
+  for (const record of broken) {
+    await store.delete(record.id);
+    await db.outbox.delete(`${name}:${record.id}`);
+    const fixed = { ...record, id: newId(), updatedAt: nowIso() };
+    await store.put(fixed);
+    await queueChange(name, fixed.id);
+  }
+}
+
+export async function start(): Promise<void> {
+  await rekey('expenses', db.expenses);
+  await rekey('quick_titles', db.quickTitles);
+  await loadAll();
 }
 
 export async function loadAll(): Promise<void> {
