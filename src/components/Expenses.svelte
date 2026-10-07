@@ -71,6 +71,7 @@
     <h2 class="month">{group.label}</h2>
     <ul class="list card">
       {#each group.items as e (e.id)}
+        {@const tag = e.tagId ? app.tags.find((item) => item.id === e.tagId) : null}
         <li>
           <button class="row" onclick={() => onedit(e)}>
             <span class="icon" class:settlement={e.isSettlement} aria-hidden="true">
@@ -81,6 +82,9 @@
               <span class="sub muted">
                 {dayLabel(e.date)} · {app.meId === e.paidBy ? 'Du' : memberName(e.paidBy)} betalade
               </span>
+              {#if tag}
+                <span class="sub tag"><i class="fa-solid {tag.icon}" aria-hidden="true"></i> {tag.text}</span>
+              {/if}
             </span>
             <span class="amounts">
               <span class="amount">{formatOre(e.amountOre)}</span>
@@ -187,6 +191,10 @@
 
   .sub {
     font-size: 0.8rem;
+  }
+
+  .tag {
+    color: var(--matcha-700);
   }
 
   .empty {

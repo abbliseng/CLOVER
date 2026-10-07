@@ -69,11 +69,6 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .caption {
-    font-size: 0.85rem;
-    flex: 1;
-  }
-
   .settle {
     align-self: center;
     min-height: 34px;

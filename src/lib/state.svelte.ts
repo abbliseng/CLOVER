@@ -6,9 +6,11 @@ import {
   type Group,
   type Member,
   type QuickTitle,
+  type Tag,
   type RemoteTable
 } from './db';
 import { newId, nowIso, UUID_PATTERN } from './id';
+import { DEFAULT_TAGS, tagIdFor, type TagIcon } from './tags';
 import type { Period } from './period';
 import { supabase, syncConfigured } from './supabase';
 import { queueChange, resetSyncCursor, startSync, stopSync, syncNow } from './sync.svelte';
@@ -26,6 +28,7 @@ export const app = $state({
   group: null as Group | null,
   members: [] as Member[],
   quickTitles: [] as QuickTitle[],
+  tags: [] as Tag[],
   expenses: [] as Expense[],
   meId: null as string | null,
   tab: 'expenses' as Tab,
@@ -68,13 +71,15 @@ export async function loadAll(): Promise<void> {
 
   if (group) {
     localStorage.setItem(GROUP_KEY, group.id);
-    const [members, quickTitles, expenses] = await Promise.all([
+    const [members, quickTitles, tags, expenses] = await Promise.all([
       db.members.where('groupId').equals(group.id).toArray(),
       db.quickTitles.where('groupId').equals(group.id).toArray(),
+      db.tags.where('groupId').equals(group.id).toArray(),
       db.expenses.where('groupId').equals(group.id).toArray()
     ]);
     app.members = members.filter((m) => !m.deleted).sort((a, b) => a.name.localeCompare(b.name, 'sv'));
     app.quickTitles = quickTitles.filter((q) => !q.deleted).sort((a, b) => a.text.localeCompare(b.text, 'sv'));
+    app.tags = tags.filter((tag) => !tag.deleted).sort((a, b) => a.text.localeCompare(b.text, 'sv'));
     app.expenses = expenses.filter((e) => !e.deleted);
 
     const claimed = app.user ? app.members.find((m) => m.authUserId === app.user!.id) : null;
@@ -85,6 +90,7 @@ export async function loadAll(): Promise<void> {
   } else {
     app.members = [];
     app.quickTitles = [];
+    app.tags = [];
     app.expenses = [];
     app.meId = null;
   }
@@ -193,14 +199,23 @@ export async function createGroup(name: string, memberNames: string[], meIndex: 
     updatedAt,
     deleted: false
   }));
+  const tags: Tag[] = DEFAULT_TAGS.map((tag) => ({
+    id: tagIdFor(groupId, tag.text),
+    groupId,
+    ...tag,
+    updatedAt,
+    deleted: false
+  }));
 
-  await db.transaction('rw', db.groups, db.members, db.quickTitles, db.outbox, async () => {
+  await db.transaction('rw', db.groups, db.members, db.quickTitles, db.tags, db.outbox, async () => {
     await db.groups.put(group);
     await db.members.bulkPut(members);
     await db.quickTitles.bulkPut(quickTitles);
+    await db.tags.bulkPut(tags);
     await queueChange('groups', groupId);
     for (const m of members) await queueChange('members', m.id);
     for (const q of quickTitles) await queueChange('quick_titles', q.id);
+    for (const tag of tags) await queueChange('tags', tag.id);
   });
 
   localStorage.setItem(GROUP_KEY, groupId);
@@ -210,7 +225,7 @@ export async function createGroup(name: string, memberNames: string[], meIndex: 
 }
 
 async function put<T extends { id: string }>(
-  table: 'groups' | 'members' | 'quick_titles' | 'expenses',
+  table: 'groups' | 'members' | 'quick_titles' | 'tags' | 'expenses',
   store: { put(record: T): unknown },
   record: T
 ): Promise<void> {
@@ -219,6 +234,25 @@ async function put<T extends { id: string }>(
   await queueChange(table, record.id);
   await loadAll();
   void syncNow();
+}
+
+export async function addTag(text: string, icon: TagIcon): Promise<string | null> {
+  if (!app.group) return null;
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const existing = app.tags.find((tag) => tag.text.toLocaleLowerCase('sv-SE') === trimmed.toLocaleLowerCase('sv-SE'));
+  if (existing) return existing.id;
+
+  const tag: Tag = {
+    id: tagIdFor(app.group.id, trimmed),
+    groupId: app.group.id,
+    text: trimmed,
+    icon,
+    updatedAt: nowIso(),
+    deleted: false
+  };
+  await put('tags', db.tags, tag);
+  return tag.id;
 }
 
 export async function renameGroup(name: string): Promise<void> {

@@ -18,7 +18,7 @@
   );
   const widest = $derived(Math.max(1, ...rows.map((r) => Math.abs(r.ore))));
   const transfers = $derived(simplifyDebts(balances));
-  const stats = $derived(computeStats(shown, memberIds, app.meId));
+  const stats = $derived(computeStats(shown, memberIds, app.tags, app.meId));
 
   const share = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
 </script>
@@ -99,12 +99,12 @@
   </ul>
 
   {#if stats.categories.length > 0}
-    <h2 class="month">PER KATEGORI</h2>
+    <h2 class="month">PER TAGG</h2>
     <ul class="list card">
-      {#each stats.categories as c (c.title)}
+      {#each stats.categories as c (c.tagId ?? 'untagged')}
         <li>
           <div class="row">
-            <span class="name">{c.title}<span class="sub muted"> · {c.count} st</span></span>
+            <span class="name"><i class="fa-solid {c.icon}" aria-hidden="true"></i> {c.title}<span class="sub muted"> · {c.count} st</span></span>
             <span class="value">{formatOre(c.totalOre)}</span>
           </div>
           <div class="track" aria-hidden="true">

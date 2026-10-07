@@ -1,5 +1,5 @@
 import type { Table } from 'dexie';
-import { db, type Expense, type Group, type Member, type QuickTitle, type RemoteTable } from './db';
+import { db, type Expense, type Group, type Member, type QuickTitle, type RemoteTable, type Tag } from './db';
 import { supabase } from './supabase';
 
 interface Spec<T> {
@@ -48,6 +48,27 @@ const quickTitleSpec: Spec<QuickTitle> = {
   fromRow: (r) => ({ id: r.id, groupId: r.group_id, text: r.text, updatedAt: iso(r.updated_at), deleted: r.deleted })
 };
 
+const tagSpec: Spec<Tag> = {
+  remote: 'tags',
+  table: db.tags,
+  toRow: (tag) => ({
+    id: tag.id,
+    group_id: tag.groupId,
+    text: tag.text,
+    icon: tag.icon,
+    updated_at: tag.updatedAt,
+    deleted: tag.deleted
+  }),
+  fromRow: (r) => ({
+    id: r.id,
+    groupId: r.group_id,
+    text: r.text,
+    icon: r.icon,
+    updatedAt: iso(r.updated_at),
+    deleted: r.deleted
+  })
+};
+
 const expenseSpec: Spec<Expense> = {
   remote: 'expenses',
   table: db.expenses,
@@ -55,6 +76,7 @@ const expenseSpec: Spec<Expense> = {
     id: e.id,
     group_id: e.groupId,
     title: e.title,
+    tag_id: e.tagId,
     amount_ore: e.amountOre,
     date: e.date,
     paid_by: e.paidBy,
@@ -67,6 +89,7 @@ const expenseSpec: Spec<Expense> = {
     id: r.id,
     groupId: r.group_id,
     title: r.title,
+    tagId: r.tag_id ?? null,
     amountOre: Number(r.amount_ore),
     date: r.date,
     paidBy: r.paid_by,
@@ -78,7 +101,7 @@ const expenseSpec: Spec<Expense> = {
 };
 
 // Parents before children: a member row is rejected until its group exists.
-const specs = [groupSpec, memberSpec, quickTitleSpec, expenseSpec] as Spec<any>[];
+const specs = [groupSpec, memberSpec, quickTitleSpec, tagSpec, expenseSpec] as Spec<any>[];
 
 const EPOCH = '1970-01-01T00:00:00.000Z';
 const sinceKey = (remote: RemoteTable) => `clover.sync.since.${remote}`;

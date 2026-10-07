@@ -1,8 +1,10 @@
-import type { Expense } from './db';
+import type { Expense, Tag } from './db';
 import { splitOre } from './balances';
 
 export interface CategoryStat {
+  tagId: string | null;
   title: string;
+  icon: string;
   totalOre: number;
   count: number;
   /** Share of the member this phone belongs to, if known. */
@@ -30,7 +32,12 @@ export interface Stats {
 }
 
 /** Spending figures for a set of expenses; settlements are counted separately, not as spending. */
-export function computeStats(expenses: Expense[], memberIds: string[], meId: string | null = null): Stats {
+export function computeStats(
+  expenses: Expense[],
+  memberIds: string[],
+  tags: Tag[],
+  meId: string | null = null
+): Stats {
   const spending = expenses.filter((e) => !e.deleted && !e.isSettlement);
   const settlements = expenses.filter((e) => !e.deleted && e.isSettlement);
 
@@ -38,10 +45,19 @@ export function computeStats(expenses: Expense[], memberIds: string[], meId: str
   const months = new Set(spending.map((e) => e.date.slice(0, 7))).size || 1;
 
   const categories = new Map<string, CategoryStat>();
+  const tagsById = new Map(tags.map((tag) => [tag.id, tag]));
   let yourShareOre = 0;
   for (const e of spending) {
-    const key = e.title.trim().toLowerCase() || '—';
-    const stat = categories.get(key) ?? { title: e.title.trim() || '—', totalOre: 0, count: 0, yoursOre: 0 };
+    const tag = e.tagId ? tagsById.get(e.tagId) : undefined;
+    const key = e.tagId ?? 'untagged';
+    const stat = categories.get(key) ?? {
+      tagId: e.tagId,
+      title: tag?.text ?? 'Otaggat',
+      icon: tag?.icon ?? 'fa-tag',
+      totalOre: 0,
+      count: 0,
+      yoursOre: 0
+    };
     stat.totalOre += e.amountOre;
     stat.count += 1;
     if (meId) {

@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { computeStats } from '../src/lib/stats';
 import { rangeOf, withinPeriod, type Period } from '../src/lib/period';
 import { evenShares } from '../src/lib/balances';
-import type { Expense } from '../src/lib/db';
+import type { Expense, Tag } from '../src/lib/db';
 
 function expense(date: string, amountOre: number, title: string, paidBy: string, isSettlement = false): Expense {
   return {
     id: `${date}-${title}-${amountOre}`,
     groupId: 'g',
     title,
+    tagId: isSettlement ? null : title === 'Hyra' ? 'rent-tag' : 'food-tag',
     amountOre,
     date,
     paidBy,
@@ -27,8 +28,13 @@ const expenses = [
   expense('2026-09-12', 7000, 'Betalning till b', 'a', true)
 ];
 
+const tags: Tag[] = [
+  { id: 'food-tag', groupId: 'g', text: 'Mat', icon: 'fa-utensils', updatedAt: '2026-09-01T00:00:00.000Z', deleted: false },
+  { id: 'rent-tag', groupId: 'g', text: 'Boende', icon: 'fa-house', updatedAt: '2026-09-01T00:00:00.000Z', deleted: false }
+];
+
 describe('computeStats', () => {
-  const stats = computeStats(expenses, ['a', 'b'], 'a');
+  const stats = computeStats(expenses, ['a', 'b'], tags, 'a');
 
   it('leaves settlements out of the spending total', () => {
     expect(stats.totalOre).toBe(95000);
@@ -43,10 +49,10 @@ describe('computeStats', () => {
     expect(stats.averageOre).toBe(23750);
   });
 
-  it('groups categories by title, largest first', () => {
-    expect(stats.categories.map((c) => [c.title, c.totalOre, c.count])).toEqual([
-      ['Hyra', 60000, 1],
-      ['Mat', 35000, 3]
+  it('groups statistics by tag ID and displays the tag text, largest first', () => {
+    expect(stats.categories.map((c) => [c.tagId, c.title, c.totalOre, c.count])).toEqual([
+      ['rent-tag', 'Boende', 60000, 1],
+      ['food-tag', 'Mat', 35000, 3]
     ]);
   });
 

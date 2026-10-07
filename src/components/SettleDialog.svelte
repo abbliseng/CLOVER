@@ -52,6 +52,7 @@
       id: newId(),
       groupId: app.group!.id,
       title: `Betalning till ${memberName(to)}`,
+      tagId: null,
       amountOre: ore,
       date: todayIso(),
       paidBy: app.meId!,

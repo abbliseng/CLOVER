@@ -31,10 +31,24 @@ create table if not exists public.quick_titles (
   deleted boolean not null default false
 );
 
+create table if not exists public.tags (
+  id uuid primary key,
+  group_id uuid not null references public.groups (id) on delete cascade,
+  text text not null,
+  icon text not null default 'fa-tag',
+  updated_at timestamptz not null default now(),
+  deleted boolean not null default false
+);
+
+create unique index if not exists tags_unique_per_group
+  on public.tags (group_id, lower(text)) where not deleted;
+create index if not exists tags_updated_idx on public.tags (updated_at);
+
 create table if not exists public.expenses (
   id uuid primary key,
   group_id uuid not null references public.groups (id) on delete cascade,
   title text not null,
+  tag_id uuid references public.tags (id),
   amount_ore bigint not null,
   date date not null,
   paid_by uuid not null,
@@ -43,6 +57,8 @@ create table if not exists public.expenses (
   updated_at timestamptz not null default now(),
   deleted boolean not null default false
 );
+
+alter table public.expenses add column if not exists tag_id uuid references public.tags (id);
 
 create index if not exists members_group_idx on public.members (group_id);
 create index if not exists quick_titles_group_idx on public.quick_titles (group_id);
@@ -86,6 +102,7 @@ $$;
 alter table public.groups enable row level security;
 alter table public.members enable row level security;
 alter table public.quick_titles enable row level security;
+alter table public.tags enable row level security;
 alter table public.expenses enable row level security;
 
 -- groups: readable and writable by its members. A group where nobody has claimed a seat is
@@ -114,6 +131,10 @@ create policy members_update on public.members for update to authenticated
 
 drop policy if exists quick_titles_all on public.quick_titles;
 create policy quick_titles_all on public.quick_titles for all to authenticated
+  using (is_group_member(group_id)) with check (is_group_member(group_id));
+
+drop policy if exists tags_all on public.tags;
+create policy tags_all on public.tags for all to authenticated
   using (is_group_member(group_id)) with check (is_group_member(group_id));
 
 drop policy if exists expenses_all on public.expenses;

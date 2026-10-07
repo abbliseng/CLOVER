@@ -5,7 +5,8 @@
   import { formatOre } from '../lib/money';
   import type { Expense, Share } from '../lib/db';
   import { newId, nowIso, todayIso } from '../lib/id';
-  import { addQuickTitle, app, deleteExpense, saveExpense } from '../lib/state.svelte';
+  import { normalizeTagIcon, TAG_ICONS, type TagIcon } from '../lib/tags';
+  import { addQuickTitle, addTag as createTag, app, deleteExpense, saveExpense } from '../lib/state.svelte';
 
   let { expense = null, onclose }: { expense?: Expense | null; onclose: () => void } = $props();
 
@@ -28,6 +29,7 @@
     return {
       amount: initialAmount(),
       title: expense?.title ?? '',
+      tagId: expense?.tagId ?? null,
       date: expense?.date ?? todayIso(),
       included: expense ? expense.shares.map((s) => s.memberId) : [...memberIds],
       percents: initialPercents(),
@@ -40,15 +42,22 @@
 
   let amountText = $state(initial.amount);
   let title = $state(initial.title);
+  let selectedTagId = $state<string | null>(initial.tagId);
   let date = $state(initial.date);
   let included = $state<string[]>(initial.included);
   let percents = $state<Record<string, number>>(initial.percents);
   let paidBy = $state(initial.paidBy);
   let newTitleText = $state('');
   let addingTitle = $state(false);
+  let newTagText = $state('');
+  let newTagIcon = $state<TagIcon>('fa-tag');
+  let manualTagIcon = $state('');
+  let showManualIcon = $state(false);
+  let addingTag = $state(false);
   let error = $state('');
 
   const amountOre = $derived(evaluateToOre(amountText));
+  const previewTagIcon = $derived(normalizeTagIcon(manualTagIcon));
   const shares = $derived<Share[]>(included.map((id) => ({ memberId: id, percent: percents[id] ?? 0 })));
   const total = $derived(percentTotal(shares));
   const canSave = $derived(
@@ -110,6 +119,45 @@
     error = '';
   }
 
+  async function addTagOption() {
+    const icon = showManualIcon ? normalizeTagIcon(manualTagIcon) : newTagIcon;
+    if (!icon) {
+      error = 'Skriv ett ikonnamn, till exempel fa-burger.';
+      return;
+    }
+    const id = await createTag(newTagText, icon);
+    if (!id) return;
+    selectedTagId = id;
+    newTagText = '';
+    manualTagIcon = '';
+    showManualIcon = false;
+    addingTag = false;
+    error = '';
+  }
+
+  function advanceOnEnter(event: KeyboardEvent) {
+    if (event.key !== 'Enter' || event.defaultPrevented) return;
+    if (!(event.target instanceof HTMLInputElement) || event.target.type === 'checkbox') return;
+    event.preventDefault();
+
+    const container = event.currentTarget;
+    if (!(container instanceof HTMLElement)) return;
+    const inputs = Array.from(
+      container.querySelectorAll<HTMLInputElement>('input:not([type="checkbox"]):not([type="hidden"]), select, textarea')
+    ).filter((input) => !input.disabled);
+    const next = inputs[inputs.indexOf(event.target) + 1];
+    if (!next) return;
+    next.focus();
+    if (next instanceof HTMLInputElement && ['text', 'search', 'tel', 'url', 'password', 'email'].includes(next.type)) {
+      next.select();
+    }
+  }
+
+  function keyboardNavigation(node: HTMLFormElement) {
+    node.addEventListener('keydown', advanceOnEnter);
+    return { destroy: () => node.removeEventListener('keydown', advanceOnEnter) };
+  }
+
   async function save() {
     if (amountOre === null || amountOre <= 0) {
       error = 'Ange en kostnad större än noll.';
@@ -127,6 +175,7 @@
       id: expense?.id ?? newId(),
       groupId: app.group!.id,
       title: title.trim(),
+      tagId: selectedTagId,
       amountOre,
       date,
       paidBy,
@@ -146,7 +195,7 @@
 </script>
 
 <Modal title={expense ? 'Redigera utgift' : 'Ny utgift'} {onclose}>
-  <div class="form">
+  <form class="form" use:keyboardNavigation onsubmit={(event) => event.preventDefault()}>
     <div class="field">
       <span class="label">Titel</span>
       <input bind:value={title} placeholder="Vad gällde det?" autocomplete="off" />
@@ -165,7 +214,12 @@
               bind:value={newTitleText}
               placeholder="Ny titel"
               autocomplete="off"
-              onkeydown={(e) => e.key === 'Enter' && addTitleOption()}
+              onkeydown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  void addTitleOption();
+                }
+              }}
             />
             <button type="button" class="chip add" onclick={addTitleOption}>Lägg till</button>
           </span>
@@ -173,6 +227,66 @@
           <button type="button" class="chip add" onclick={() => (addingTitle = true)}>+</button>
         {/if}
       </div>
+    </div>
+
+    <div class="field">
+      <span class="label">Tagg</span>
+      <div class="chips">
+        <button type="button" class="chip" class:selected={selectedTagId === null} onclick={() => (selectedTagId = null)}>
+          Ingen
+        </button>
+        {#each app.tags as tag (tag.id)}
+          <button
+            type="button"
+            class="chip tag-chip"
+            class:selected={selectedTagId === tag.id}
+            onclick={() => (selectedTagId = tag.id)}
+          >
+            <i class="fa-solid {tag.icon}" aria-hidden="true"></i>
+            {tag.text}
+          </button>
+        {/each}
+        <button type="button" class="chip add" onclick={() => (addingTag = !addingTag)} aria-label="Lägg till tagg">+</button>
+      </div>
+      {#if addingTag}
+        <div class="tag-editor">
+          <input bind:value={newTagText} placeholder="Namn" autocomplete="off" />
+          <div class="icon-picker" aria-label="Välj ikon">
+            {#each TAG_ICONS as item (item.icon)}
+              <button
+                type="button"
+                class="icon-choice"
+                class:selected={newTagIcon === item.icon}
+                aria-label={`Ikon: ${item.label}`}
+                title={item.label}
+                onclick={() => (newTagIcon = item.icon)}
+              ><i class="fa-solid {item.icon}" aria-hidden="true"></i></button>
+            {/each}
+          </div>
+          <button
+            type="button"
+            class="manual-icon-toggle"
+            aria-expanded={showManualIcon}
+            onclick={() => (showManualIcon = !showManualIcon)}
+          >{showManualIcon ? 'Ångra' : 'Skriv eget ikonnamn'}</button>
+          {#if showManualIcon}
+            <label class="manual-icon-field">
+              <div class="manual-icon-input">
+                <input bind:value={manualTagIcon} placeholder="fa-blah fa-bluh" autocomplete="off" />
+                <span class="icon-preview" aria-label="Ikonförhandsvisning">
+                  {#if previewTagIcon}<i class="fa-solid {previewTagIcon}" aria-hidden="true"></i>{:else}<i class="fa-solid fa-tag" aria-hidden="true"></i>{/if}
+                </span>
+              </div>
+            </label>
+          {/if}
+          <button
+            type="button"
+            class="btn btn-primary"
+            disabled={!newTagText.trim()}
+            onclick={addTagOption}
+          >Lägg till tagg</button>
+        </div>
+      {/if}
     </div>
 
     <div class="field">
@@ -184,7 +298,7 @@
       <span class="label">Kostnad (SEK)</span>
       <input
         class="amount"
-        inputmode="text"
+        inputmode="decimal"
         placeholder="0"
         autocomplete="off"
         bind:value={amountText}
@@ -258,7 +372,7 @@
     {#if error}
       <p class="error">{error}</p>
     {/if}
-  </div>
+  </form>
 
   {#snippet footer()}
     <div class="actions">
@@ -355,6 +469,82 @@
   .chip.add {
     color: var(--matcha-600);
     border-style: dashed;
+  }
+
+  .tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .tag-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+
+  .icon-picker {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(36px, 1fr));
+    gap: 6px;
+  }
+
+  .icon-choice {
+    display: grid;
+    place-items: center;
+    min-height: 38px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface-2);
+    color: var(--muted);
+  }
+
+  .icon-choice.selected {
+    color: var(--matcha-700);
+    border-color: var(--matcha-500);
+    background: var(--matcha-100);
+  }
+
+  .manual-icon-toggle {
+    align-self: flex-start;
+    padding: 2px 0;
+    border: 0;
+    background: transparent;
+    color: var(--matcha-700);
+    font: inherit;
+    font-size: 0.88rem;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .manual-icon-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 0.82rem;
+  }
+
+  .manual-icon-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .icon-preview {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--matcha-50);
+    color: var(--matcha-700);
+    font-size: 1.15rem;
   }
 
   .chip-input {

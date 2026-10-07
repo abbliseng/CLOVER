@@ -7,6 +7,7 @@ function expense(partial: Partial<Expense> & Pick<Expense, 'amountOre' | 'paidBy
     id: partial.id ?? Math.random().toString(36).slice(2),
     groupId: 'g',
     title: partial.title ?? 'Test',
+    tagId: partial.tagId ?? null,
     date: partial.date ?? '2026-09-01',
     isSettlement: partial.isSettlement ?? false,
     updatedAt: '2026-09-01T00:00:00.000Z',
