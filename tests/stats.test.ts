@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { computeStats } from '../src/lib/stats';
-import { rangeOf, withinPeriod, type Period } from '../src/lib/period';
+import { DEFAULT_PERIOD, rangeOf, withinPeriod, type Period } from '../src/lib/period';
 import { evenShares } from '../src/lib/balances';
 import type { Expense, Tag } from '../src/lib/db';
 
@@ -95,6 +95,10 @@ describe('computeStats', () => {
 
 describe('period', () => {
   const today = new Date(2026, 8, 26); // September 2026
+
+  it('defaults the app to the current month', () => {
+    expect(DEFAULT_PERIOD).toEqual({ preset: 'month', from: '', to: '' });
+  });
 
   it('covers the current month', () => {
     expect(rangeOf({ preset: 'month', from: '', to: '' }, today)).toEqual({

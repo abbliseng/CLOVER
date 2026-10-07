@@ -11,7 +11,7 @@ import {
 } from './db';
 import { newId, nowIso, UUID_PATTERN } from './id';
 import { DEFAULT_TAGS, tagIdFor, type TagIcon } from './tags';
-import type { Period } from './period';
+import { DEFAULT_PERIOD } from './period';
 import { supabase, syncConfigured } from './supabase';
 import { queueChange, resetSyncCursor, startSync, stopSync, syncNow } from './sync.svelte';
 
@@ -32,7 +32,7 @@ export const app = $state({
   expenses: [] as Expense[],
   meId: null as string | null,
   tab: 'expenses' as Tab,
-  period: { preset: 'all', from: '', to: '' } as Period
+  period: { ...DEFAULT_PERIOD }
 });
 
 export function memberName(id: string | null | undefined): string {

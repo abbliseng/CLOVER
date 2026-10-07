@@ -7,6 +7,8 @@ export interface Period {
   to: string;
 }
 
+export const DEFAULT_PERIOD: Period = { preset: 'month', from: '', to: '' };
+
 const pad = (n: number) => String(n).padStart(2, '0');
 const day = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
