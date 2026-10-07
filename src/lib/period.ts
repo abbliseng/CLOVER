@@ -50,6 +50,6 @@ export function periodLabel(period: Period, today = new Date()): string {
       return `${from ?? '…'} – ${to ?? '…'}`;
     }
     default:
-      return 'Allt';
+      return 'Denna månad';
   }
 }

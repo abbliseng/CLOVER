@@ -3,10 +3,10 @@
   import { app } from '../lib/state.svelte';
 
   const presets: { key: PeriodPreset; label: string }[] = [
-    { key: 'all', label: 'Allt' },
     { key: 'month', label: 'Denna månad' },
     { key: 'quarter', label: '3 mån' },
     { key: 'year', label: 'I år' },
+    { key: 'all', label: 'Allt' },
     { key: 'custom', label: 'Egen' }
   ];
 </script>
