@@ -1,14 +1,17 @@
 <script lang="ts">
   import Modal from './Modal.svelte';
+  import { normalizeTagIcon } from '../lib/tags';
   import {
     addMember,
     app,
     removeQuickTitle,
     renameGroup,
     renameMember,
+    removeTag,
     setMe,
     setPhone,
-    signOut
+    signOut,
+    updateTag
   } from '../lib/state.svelte';
   import { syncConfigured } from '../lib/supabase';
   import { syncNow, syncState } from '../lib/sync.svelte';
@@ -19,6 +22,8 @@
   let newMember = $state('');
   let error = $state('');
   let copied = $state(false);
+  let tagError = $state('');
+  let tagEdits = $state(Object.fromEntries(app.tags.map((tag) => [tag.id, { text: tag.text, icon: tag.icon }])));
 
   const me = $derived(app.members.find((m) => m.id === app.meId) ?? null);
 
@@ -58,6 +63,24 @@
     } catch {
       error = 'Kunde inte kopiera koden.';
     }
+  }
+
+  async function saveTag(id: string) {
+    const edit = tagEdits[id];
+    if (!edit) return;
+    const icon = normalizeTagIcon(edit.icon);
+    if (!icon) {
+      tagError = 'Ange en giltig Font Awesome-klass, till exempel fa-utensils.';
+      return;
+    }
+    tagError = (await updateTag(id, edit.text, icon)) ?? '';
+  }
+
+  async function deleteTag(id: string, text: string) {
+    const confirmed = window.confirm(`Ta bort taggen "${text}"? Utgifter med taggen blir otaggade.`);
+    if (!confirmed) return;
+    await removeTag(id);
+    tagError = '';
   }
 </script>
 
@@ -109,6 +132,38 @@
       </div>
     </div>
 
+    <div class="field">
+      <span class="label">Taggar</span>
+      <ul class="tag-list">
+        {#each app.tags as tag (tag.id)}
+          {@const edit = tagEdits[tag.id] ?? { text: tag.text, icon: tag.icon }}
+          <li class="tag-row">
+            <span class="tag-preview"><i class="fa-solid {normalizeTagIcon(edit.icon) ?? 'fa-tag'}" aria-hidden="true"></i></span>
+            <div class="tag-fields">
+              <input
+                value={edit.text}
+                oninput={(event) => (tagEdits[tag.id].text = event.currentTarget.value)}
+                aria-label={`Taggnamn: ${tag.text}`}
+              />
+              <input
+                value={edit.icon}
+                oninput={(event) => (tagEdits[tag.id].icon = event.currentTarget.value)}
+                aria-label={`Font Awesome-klass: ${tag.text}`}
+                placeholder="fa-tag"
+              />
+            </div>
+            <button class="icon-action save" onclick={() => saveTag(tag.id)} title="Spara tagg" aria-label={`Spara ${tag.text}`}>
+              <i class="fa-solid fa-check" aria-hidden="true"></i>
+            </button>
+            <button class="icon-action delete" onclick={() => deleteTag(tag.id, tag.text)} title="Ta bort tagg" aria-label={`Ta bort ${tag.text}`}>
+              <i class="fa-solid fa-trash" aria-hidden="true"></i>
+            </button>
+          </li>
+        {/each}
+      </ul>
+      {#if tagError}<p class="error">{tagError}</p>{/if}
+    </div>
+
     {#if syncConfigured}
       <div class="field">
         <span class="label">Bjud in</span>
@@ -157,6 +212,55 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+  }
+
+  .tag-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tag-row {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) 38px 38px;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .tag-preview,
+  .icon-action {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-2);
+    color: var(--matcha-700);
+  }
+
+  .tag-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(84px, 0.9fr);
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .tag-fields input {
+    min-width: 0;
+    padding: 8px;
+    min-height: 40px;
+  }
+
+  .icon-action {
+    padding: 0;
+  }
+
+  .icon-action.delete {
+    color: var(--danger);
   }
 
   .person {

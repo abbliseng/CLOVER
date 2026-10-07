@@ -255,6 +255,37 @@ export async function addTag(text: string, icon: TagIcon): Promise<string | null
   return tag.id;
 }
 
+export async function updateTag(id: string, text: string, icon: TagIcon): Promise<string | null> {
+  const tag = app.tags.find((item) => item.id === id);
+  const trimmed = text.trim();
+  if (!tag || !trimmed) return 'Skriv ett namn på taggen.';
+  if (app.tags.some((item) => item.id !== id && item.text.toLocaleLowerCase('sv-SE') === trimmed.toLocaleLowerCase('sv-SE'))) {
+    return `Taggen "${trimmed}" finns redan.`;
+  }
+
+  await put('tags', db.tags, { ...tag, text: trimmed, icon, updatedAt: nowIso() });
+  return null;
+}
+
+export async function removeTag(id: string): Promise<void> {
+  const tag = app.tags.find((item) => item.id === id);
+  if (!tag) return;
+  const updatedAt = nowIso();
+
+  await db.transaction('rw', db.tags, db.expenses, db.outbox, async () => {
+    const expenses = await db.expenses.where('tagId').equals(id).toArray();
+    for (const expense of expenses) {
+      await db.expenses.put({ ...expense, tagId: null, updatedAt });
+      await queueChange('expenses', expense.id);
+    }
+    await db.tags.put({ ...tag, deleted: true, updatedAt });
+    await queueChange('tags', tag.id);
+  });
+
+  await loadAll();
+  void syncNow();
+}
+
 export async function renameGroup(name: string): Promise<void> {
   if (!app.group) return;
   await put('groups', db.groups, { ...app.group, name, updatedAt: nowIso() });
