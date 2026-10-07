@@ -203,6 +203,7 @@ export async function createGroup(name: string, memberNames: string[], meIndex: 
     id: tagIdFor(groupId, tag.text),
     groupId,
     ...tag,
+    expandTitles: false,
     updatedAt,
     deleted: false
   }));
@@ -248,6 +249,7 @@ export async function addTag(text: string, icon: TagIcon): Promise<string | null
     groupId: app.group.id,
     text: trimmed,
     icon,
+    expandTitles: false,
     updatedAt: nowIso(),
     deleted: false
   };
@@ -265,6 +267,12 @@ export async function updateTag(id: string, text: string, icon: TagIcon): Promis
 
   await put('tags', db.tags, { ...tag, text: trimmed, icon, updatedAt: nowIso() });
   return null;
+}
+
+export async function setTagTitleBreakdown(id: string, expandTitles: boolean): Promise<void> {
+  const tag = app.tags.find((item) => item.id === id);
+  if (!tag || tag.expandTitles === expandTitles) return;
+  await put('tags', db.tags, { ...tag, expandTitles, updatedAt: nowIso() });
 }
 
 export async function removeTag(id: string): Promise<void> {

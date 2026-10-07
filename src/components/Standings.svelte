@@ -19,8 +19,15 @@
   const widest = $derived(Math.max(1, ...rows.map((r) => Math.abs(r.ore))));
   const transfers = $derived(simplifyDebts(balances));
   const stats = $derived(computeStats(shown, memberIds, app.tags, app.meId));
+  let expandedTagIds = $state<string[]>([]);
 
   const share = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
+
+  function toggleTag(tagId: string) {
+    expandedTagIds = expandedTagIds.includes(tagId)
+      ? expandedTagIds.filter((id) => id !== tagId)
+      : [...expandedTagIds, tagId];
+  }
 </script>
 
 <section>
@@ -102,9 +109,22 @@
     <h2 class="month">PER TAGG</h2>
     <ul class="list card">
       {#each stats.categories as c (c.tagId ?? 'untagged')}
+        {@const tag = c.tagId ? app.tags.find((item) => item.id === c.tagId) : null}
+        {@const expanded = c.tagId !== null && expandedTagIds.includes(c.tagId)}
         <li>
           <div class="row">
-            <span class="name"><i class="fa-solid {c.icon}" aria-hidden="true"></i> {c.title}<span class="sub muted"> · {c.count} st</span></span>
+            <span class="name tag-name">
+              {#if tag?.expandTitles && c.tagId}
+                <button
+                  type="button"
+                  class="expand-tag"
+                  aria-label={`${expanded ? 'Dölj' : 'Visa'} titlar för ${c.title}`}
+                  aria-expanded={expanded}
+                  onclick={() => toggleTag(c.tagId!)}
+                ><i class="fa-solid fa-chevron-{expanded ? 'down' : 'right'}" aria-hidden="true"></i></button>
+              {/if}
+              <i class="fa-solid {c.icon}" aria-hidden="true"></i> {c.title}<span class="sub muted"> · {c.count} st</span>
+            </span>
             <span class="value">{formatOre(c.totalOre)}</span>
           </div>
           <div class="track" aria-hidden="true">
@@ -113,6 +133,22 @@
           <p class="sub muted">
             {share(c.totalOre, stats.totalOre)} % av utgifterna · {formatOre(Math.round(c.totalOre / stats.months))}/mån
           </p>
+          {#if expanded}
+            <ul class="title-stats">
+              {#each c.titles as titleStat (titleStat.title)}
+                <li>
+                  <div class="row">
+                    <span class="name">{titleStat.title}<span class="sub muted"> · {titleStat.count} st</span></span>
+                    <span class="value">{formatOre(titleStat.totalOre)}</span>
+                  </div>
+                  <p class="sub muted">
+                    {share(titleStat.totalOre, c.totalOre)} % · {formatOre(Math.round(titleStat.totalOre / stats.months))}/mån
+                    {#if app.meId} · din del {formatOre(titleStat.yoursOre)}{/if}
+                  </p>
+                </li>
+              {/each}
+            </ul>
+          {/if}
         </li>
       {/each}
     </ul>
@@ -224,5 +260,39 @@
 
   .stats {
     margin-top: 10px;
+  }
+
+  .tag-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .expand-tag {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 28px;
+    height: 28px;
+    margin-left: -6px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: var(--matcha-700);
+    font-size: 0.7rem;
+  }
+
+  .title-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    list-style: none;
+    margin: 12px 0 0 24px;
+    padding: 0 0 0 12px;
+    border-left: 2px solid var(--matcha-200);
+  }
+
+  .title-stats li {
+    padding: 6px 0;
   }
 </style>

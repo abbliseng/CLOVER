@@ -33,6 +33,7 @@ export interface Tag {
   groupId: string;
   text: string;
   icon: string;
+  expandTitles: boolean;
   updatedAt: string;
   deleted: boolean;
 }
@@ -105,7 +106,7 @@ class CloverDb extends Dexie {
         for (const group of groups) {
           for (const seed of DEFAULT_TAGS) {
             const id = tagIdFor(group.id, seed.text);
-            tags.set(id, { id, groupId: group.id, ...seed, updatedAt, deleted: false });
+            tags.set(id, { id, groupId: group.id, ...seed, expandTitles: false, updatedAt, deleted: false });
           }
         }
 
@@ -119,6 +120,7 @@ class CloverDb extends Dexie {
               groupId: expense.groupId,
               text,
               icon: iconForTag(text),
+              expandTitles: false,
               updatedAt,
               deleted: false
             });
@@ -130,6 +132,18 @@ class CloverDb extends Dexie {
         }
 
         for (const tag of tags.values()) {
+          await transaction.table('tags').put(tag);
+          await transaction.table('outbox').put({ key: `tags:${tag.id}`, table: 'tags', id: tag.id });
+        }
+      });
+    this.version(4)
+      .stores({})
+      .upgrade(async (transaction) => {
+        const tags = await transaction.table('tags').toArray();
+        for (const tag of tags) {
+          if (typeof tag.expandTitles === 'boolean') continue;
+          tag.expandTitles = false;
+          tag.updatedAt = new Date().toISOString();
           await transaction.table('tags').put(tag);
           await transaction.table('outbox').put({ key: `tags:${tag.id}`, table: 'tags', id: tag.id });
         }

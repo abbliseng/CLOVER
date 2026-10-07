@@ -36,9 +36,12 @@ create table if not exists public.tags (
   group_id uuid not null references public.groups (id) on delete cascade,
   text text not null,
   icon text not null default 'fa-tag',
+  expand_titles boolean not null default false,
   updated_at timestamptz not null default now(),
   deleted boolean not null default false
 );
+
+alter table public.tags add column if not exists expand_titles boolean not null default false;
 
 create unique index if not exists tags_unique_per_group
   on public.tags (group_id, lower(text)) where not deleted;

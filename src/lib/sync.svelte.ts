@@ -56,6 +56,7 @@ const tagSpec: Spec<Tag> = {
     group_id: tag.groupId,
     text: tag.text,
     icon: tag.icon,
+    expand_titles: tag.expandTitles,
     updated_at: tag.updatedAt,
     deleted: tag.deleted
   }),
@@ -64,6 +65,7 @@ const tagSpec: Spec<Tag> = {
     groupId: r.group_id,
     text: r.text,
     icon: r.icon,
+    expandTitles: r.expand_titles ?? false,
     updatedAt: iso(r.updated_at),
     deleted: r.deleted
   })

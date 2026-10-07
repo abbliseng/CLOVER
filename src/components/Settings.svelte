@@ -8,6 +8,7 @@
     renameGroup,
     renameMember,
     removeTag,
+    setTagTitleBreakdown,
     setMe,
     setPhone,
     signOut,
@@ -151,6 +152,14 @@
                 aria-label={`Font Awesome-klass: ${tag.text}`}
                 placeholder="fa-tag"
               />
+              <label class="breakdown-toggle">
+                <input
+                  type="checkbox"
+                  checked={tag.expandTitles}
+                  onchange={(event) => setTagTitleBreakdown(tag.id, event.currentTarget.checked)}
+                />
+                <span>Dela upp per titel</span>
+              </label>
             </div>
             <button class="icon-action save" onclick={() => saveTag(tag.id)} title="Spara tagg" aria-label={`Spara ${tag.text}`}>
               <i class="fa-solid fa-check" aria-hidden="true"></i>
@@ -249,6 +258,10 @@
     min-width: 0;
   }
 
+  .breakdown-toggle {
+    grid-column: 1 / -1;
+  }
+
   .tag-fields input {
     min-width: 0;
     padding: 8px;
@@ -261,6 +274,23 @@
 
   .icon-action.delete {
     color: var(--danger);
+  }
+
+  .breakdown-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 0.84rem;
+  }
+
+  .breakdown-toggle input {
+    appearance: auto;
+    width: 20px;
+    height: 20px;
+    min-height: 20px;
+    margin: 0;
+    accent-color: var(--matcha-500);
   }
 
   .person {

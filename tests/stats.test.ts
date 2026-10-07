@@ -4,12 +4,19 @@ import { rangeOf, withinPeriod, type Period } from '../src/lib/period';
 import { evenShares } from '../src/lib/balances';
 import type { Expense, Tag } from '../src/lib/db';
 
-function expense(date: string, amountOre: number, title: string, paidBy: string, isSettlement = false): Expense {
+function expense(
+  date: string,
+  amountOre: number,
+  title: string,
+  paidBy: string,
+  isSettlement = false,
+  tagId = title === 'Hyra' ? 'rent-tag' : 'food-tag'
+): Expense {
   return {
     id: `${date}-${title}-${amountOre}`,
     groupId: 'g',
     title,
-    tagId: isSettlement ? null : title === 'Hyra' ? 'rent-tag' : 'food-tag',
+    tagId: isSettlement ? null : tagId,
     amountOre,
     date,
     paidBy,
@@ -29,8 +36,9 @@ const expenses = [
 ];
 
 const tags: Tag[] = [
-  { id: 'food-tag', groupId: 'g', text: 'Mat', icon: 'fa-utensils', updatedAt: '2026-09-01T00:00:00.000Z', deleted: false },
-  { id: 'rent-tag', groupId: 'g', text: 'Boende', icon: 'fa-house', updatedAt: '2026-09-01T00:00:00.000Z', deleted: false }
+  { id: 'food-tag', groupId: 'g', text: 'Mat', icon: 'fa-utensils', expandTitles: false, updatedAt: '2026-09-01T00:00:00.000Z', deleted: false },
+  { id: 'rent-tag', groupId: 'g', text: 'Boende', icon: 'fa-house', expandTitles: true, updatedAt: '2026-09-01T00:00:00.000Z', deleted: false },
+  { id: 'home-tag', groupId: 'g', text: 'Hem', icon: 'fa-house', expandTitles: true, updatedAt: '2026-09-01T00:00:00.000Z', deleted: false }
 ];
 
 describe('computeStats', () => {
@@ -53,6 +61,23 @@ describe('computeStats', () => {
     expect(stats.categories.map((c) => [c.tagId, c.title, c.totalOre, c.count])).toEqual([
       ['rent-tag', 'Boende', 60000, 1],
       ['food-tag', 'Mat', 35000, 3]
+    ]);
+  });
+
+  it('aggregates title statistics within a tag, independent of the tag label', () => {
+    const homeExpenses = [
+      expense('2026-08-01', 80000, 'Rent', 'a', false, 'home-tag'),
+      expense('2026-09-01', 20000, 'Rent', 'b', false, 'home-tag'),
+      expense('2026-09-10', 12000, 'Furniture', 'a', false, 'home-tag')
+    ];
+    const homeStats = computeStats(homeExpenses, ['a', 'b'], tags, 'a');
+    const home = homeStats.categories[0];
+
+    expect(home.tagId).toBe('home-tag');
+    expect(home.title).toBe('Hem');
+    expect(home.titles).toEqual([
+      { title: 'Rent', totalOre: 100000, count: 2, yoursOre: 50000 },
+      { title: 'Furniture', totalOre: 12000, count: 1, yoursOre: 6000 }
     ]);
   });
 

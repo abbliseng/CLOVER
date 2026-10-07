@@ -9,6 +9,14 @@ export interface CategoryStat {
   count: number;
   /** Share of the member this phone belongs to, if known. */
   yoursOre: number;
+  titles: TitleStat[];
+}
+
+export interface TitleStat {
+  title: string;
+  totalOre: number;
+  count: number;
+  yoursOre: number;
 }
 
 export interface PayerStat {
@@ -56,13 +64,23 @@ export function computeStats(
       icon: tag?.icon ?? 'fa-tag',
       totalOre: 0,
       count: 0,
-      yoursOre: 0
+      yoursOre: 0,
+      titles: []
     };
     stat.totalOre += e.amountOre;
     stat.count += 1;
+    const expenseTitle = e.title.trim() || 'Utan titel';
+    let titleStat = stat.titles.find((item) => item.title.toLocaleLowerCase('sv-SE') === expenseTitle.toLocaleLowerCase('sv-SE'));
+    if (!titleStat) {
+      titleStat = { title: expenseTitle, totalOre: 0, count: 0, yoursOre: 0 };
+      stat.titles.push(titleStat);
+    }
+    titleStat.totalOre += e.amountOre;
+    titleStat.count += 1;
     if (meId) {
       const share = splitOre(e.amountOre, e.shares).get(meId) ?? 0;
       stat.yoursOre += share;
+      titleStat.yoursOre += share;
       yourShareOre += share;
     }
     categories.set(key, stat);
@@ -81,7 +99,12 @@ export function computeStats(
     perMonthOre: Math.round(totalOre / months),
     averageOre: spending.length ? Math.round(totalOre / spending.length) : 0,
     largest: spending.reduce<Expense | null>((best, e) => (!best || e.amountOre > best.amountOre ? e : best), null),
-    categories: [...categories.values()].sort((a, b) => b.totalOre - a.totalOre),
+    categories: [...categories.values()]
+      .map((category) => ({
+        ...category,
+        titles: category.titles.sort((a, b) => b.totalOre - a.totalOre || a.title.localeCompare(b.title, 'sv'))
+      }))
+      .sort((a, b) => b.totalOre - a.totalOre),
     payers: payers.sort((a, b) => b.paidOre - a.paidOre),
     settlementOre: settlements.reduce((sum, e) => sum + e.amountOre, 0),
     settlementCount: settlements.length,
